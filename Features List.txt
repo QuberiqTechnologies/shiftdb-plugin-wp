@@ -1,0 +1,186 @@
+ShiftDB – Features List
+Author: Muhammad Abdullah
+Version: 1.0.0
+
+============================================================
+CURRENT FEATURES INCLUDED IN VERSION 1.0.0
+============================================================
+
+SECURE SEARCH & REPLACE
+- Dry-run mode before database changes.
+- Search and replace across selected WordPress database tables.
+- Case-sensitive search option.
+- Serialized PHP data awareness.
+- WordPress post GUID protection enabled by default.
+- Per-table affected row and replacement counts.
+- Preview summary before live replacement.
+- Server-side table validation so requests cannot target arbitrary tables.
+- Administrator capability checks.
+- WordPress nonce protection on mutating requests.
+- Structured AJAX error handling.
+
+RECOVERY & UNDO FOUNDATION
+- Automatic row-level recovery snapshot before a live search-and-replace operation.
+- Recovery point browser.
+- One-click restore of affected rows from a recovery point.
+- Recovery point deletion.
+- Protected recovery storage under WordPress uploads.
+- index.php, .htaccess and web.config protection files for recovery storage.
+- Conservative uninstall behavior that preserves recovery data.
+
+DATABASE MANAGEMENT
+- Database overview with table count and total size.
+- Per-table row count.
+- Storage engine information.
+- Per-table data/index size.
+- Table overhead display.
+- Selective table optimization.
+- Selective SQL export.
+- Read-only autoload analyzer showing the largest autoloaded options.
+
+DATABASE CLEANUP
+- Post revision cleanup.
+- Spam comment cleanup.
+- Trashed comment cleanup.
+- Expired transient cleanup.
+- Cleanup operations use WordPress core deletion APIs where practical.
+
+OPERATION HISTORY
+- Local ShiftDB audit log.
+- Logs dry runs, live replacements, restores, snapshot deletion, cleanup, table optimization and exports.
+- User ID, status, timestamp and non-sensitive operation metadata.
+- Search and replacement values are not written to the operation history.
+
+USER EXPERIENCE
+- Modern WordPress admin interface.
+- Responsive desktop/tablet/mobile layout.
+- Five primary management areas: Search & Replace, Database, Cleanup, Recovery and History.
+- Select-all controls for database tables.
+- Clear operation success and error states.
+- Confirmation before destructive operations.
+- Prevents live replacement until a successful matching dry run has completed in the current screen state.
+
+SECURITY PRINCIPLES
+- No file manager functionality.
+- No PHP or JavaScript editor.
+- No arbitrary executable-code insertion or execution.
+- No executable code downloaded from external sources.
+- No feature gating or trialware in the WordPress.org build.
+- Capability checks for all privileged actions.
+- Nonce verification for AJAX and export actions.
+- Input sanitization and database table allow-list validation.
+- Output escaping in the WordPress admin UI.
+- Recovery files are generated with random snapshot identifiers.
+
+============================================================
+HIGH-PRIORITY FEATURES FOR FUTURE RELEASES
+============================================================
+
+SEARCH & REPLACE ENGINE
+- Chunked/background search-and-replace engine for very large databases.
+- Progress bar with resumable batches.
+- Regex search mode with strict safeguards and preview.
+- Search-only mode with detailed matching-value previews.
+- URL migration assistant for staging-to-production moves.
+- HTTP-to-HTTPS migration preset.
+- Domain/path normalization tools.
+- Multisite-aware table selection and per-site targeting.
+- WP-CLI commands for dry runs, replacement and reporting.
+- Better JSON-aware replacement and validation.
+- Object-safe serialized-data transformation strategy.
+- Replacement exclusion rules by table and column.
+- Protected-column presets for known WordPress/WooCommerce fields.
+
+RECOVERY & BACKUPS
+- Full database backup creation.
+- Selective table backup.
+- Compressed .sql.gz export.
+- Downloadable recovery snapshots.
+- Recovery point notes/labels.
+- Configurable recovery retention.
+- Compare current values against a recovery point before restoring.
+- Partial restore by table.
+- Recovery integrity verification/checksums.
+- Optional scheduled database backups.
+
+DATABASE HEALTH & DIAGNOSTICS
+- Orphaned postmeta detection.
+- Orphaned usermeta detection.
+- Orphaned commentmeta detection.
+- Orphaned term relationships/meta detection.
+- Duplicate metadata analysis.
+- Oversized option detection.
+- Autoload total-size health score.
+- Autoload recommendations without automatic destructive changes.
+- Index diagnostics.
+- Missing/duplicate index detection.
+- Table fragmentation analysis.
+- Database charset/collation audit.
+- Mixed collation detection and safe conversion assistant.
+- Storage engine audit.
+- Database server information and compatibility report.
+- Slow-query diagnostics using safe WordPress-level instrumentation.
+
+CLEANUP & OPTIMIZATION
+- Auto-draft cleanup.
+- Trashed post/page cleanup.
+- Pingback/trackback cleanup.
+- Orphaned metadata cleanup with a mandatory preview.
+- WooCommerce expired session cleanup when WooCommerce is active.
+- WooCommerce transient cleanup.
+- Scheduled cleanup jobs.
+- Configurable cleanup retention periods.
+- Cleanup presets for development, staging and production sites.
+- Before/after database-size comparison.
+
+CRON & WORDPRESS DIAGNOSTICS
+- Read-only WP-Cron event viewer.
+- Stale cron event detection.
+- Duplicate cron event detection.
+- Missed-schedule diagnostics.
+- Site health integration for database-related warnings.
+- Dashboard database health summary.
+
+EXPORT & REPORTING
+- CSV diagnostics exports.
+- JSON diagnostics exports.
+- Printable database health report.
+- Before/after operation reports.
+- Exportable operation history.
+- Site migration checklist/report.
+
+USABILITY
+- Search/filter database tables.
+- Favorite frequently used table groups.
+- Saved safe-search presets.
+- Keyboard-accessible controls.
+- Enhanced accessibility/ARIA review.
+- Dark-mode-aware UI using WordPress admin preferences where available.
+- Contextual documentation/tooltips.
+- Error-code reference with actionable remediation guidance.
+- Built-in environment compatibility checker.
+
+DEVELOPER FEATURES
+- Extensible PHP hooks and filters.
+- Public internal service APIs for add-ons.
+- WP-CLI integration.
+- PHPUnit test suite.
+- Integration tests against supported WordPress/PHP/MySQL/MariaDB versions.
+- Automated Plugin Check validation in CI.
+- Translation template (.pot) and expanded localization coverage.
+
+POTENTIAL COMMERCIAL ECOSYSTEM FEATURES
+These should only be introduced in a WordPress.org-compliant way. Functionality included in the free directory plugin must remain fully usable and must not be artificially locked.
+
+- Separate optional add-on for remote/cloud backup destinations.
+- Separate optional add-on for agency multisite reporting.
+- External SaaS-based centralized monitoring, only with clear consent and privacy disclosure.
+- Separate enterprise reporting/integration add-ons.
+
+============================================================
+IMPORTANT PRODUCT DIRECTION
+============================================================
+
+ShiftDB should remain a database maintenance, migration-safety and diagnostics product. Avoid adding arbitrary code execution, PHP/JavaScript editors, file-manager functionality or external executable-code downloads, because these conflict with current WordPress.org submission requirements.
+
+Before public submission, the product name should be re-checked for trademark/project-name conflicts, the complete plugin should be tested with WordPress Plugin Check, and all legitimate findings should be resolved.
