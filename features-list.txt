@@ -1,9 +1,10 @@
 ShiftDB – Features List
-Author: Muhammad Abdullah
-Version: 1.0.0
+Author: Quberiq Technologies
+Contact: contact@quberiqtechnologies.com
+Version: 1.0.1
 
 ============================================================
-CURRENT FEATURES INCLUDED IN VERSION 1.0.0
+CURRENT FEATURES INCLUDED IN VERSION 1.0.1
 ============================================================
 
 SECURE SEARCH & REPLACE

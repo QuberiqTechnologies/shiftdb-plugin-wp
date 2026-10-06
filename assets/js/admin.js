@@ -57,7 +57,7 @@
 		if (!button) return;
 		if (busy) {
 			button.dataset.label = button.textContent;
-			button.textContent = cfg?.i18n?.working || 'Working…';
+			button.textContent = cfg?.i18n?.working || 'Working...';
 			button.disabled = true;
 		} else {
 			button.textContent = button.dataset.label || button.textContent;

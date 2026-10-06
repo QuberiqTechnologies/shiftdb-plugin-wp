@@ -1,19 +1,22 @@
 === ShiftDB ===
+Contributors: quberiqtechnologies
 Tags: database, search replace, database cleanup, migration, optimization
 Requires at least: 6.6
 Tested up to: 7.1
 Requires PHP: 8.0
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-A safe WordPress database toolkit for dry-run search and replace, recovery snapshots, cleanup, exports, optimization and diagnostics.
+Safe WordPress database search, replace, cleanup, recovery, optimization, exports and diagnostics.
 
 == Description ==
 
+Developed by Quberiq Technologies. Support: contact@quberiqtechnologies.com
+
 ShiftDB helps WordPress administrators inspect and maintain their WordPress database without providing arbitrary code execution or file-management functionality.
 
-Version 1.0.0 includes:
+Version 1.0.1 includes:
 
 * Dry-run search and replace.
 * Serialized-data-aware replacement.
@@ -45,7 +48,7 @@ No. ShiftDB is intentionally limited to database maintenance and diagnostics.
 
 = Does a live search and replace create a backup? =
 
-Yes. Version 1.0.0 creates a row-level recovery snapshot before applying database changes.
+Yes. Version 1.0.1 creates a row-level recovery snapshot before applying database changes.
 
 = Does ShiftDB support serialized WordPress values? =
 
@@ -56,6 +59,10 @@ Yes, common serialized arrays/scalar values are handled through unserialize/seri
 No.
 
 == Changelog ==
+
+= 1.0.1 =
+* Improved WordPress Plugin Check compliance and security validation.
+* Improved prepared database queries, nonce verification, sanitization and readme metadata.
 
 = 1.0.0 =
 * Initial release.

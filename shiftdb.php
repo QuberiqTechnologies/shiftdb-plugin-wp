@@ -2,8 +2,9 @@
 /**
  * Plugin Name: ShiftDB
  * Description: A safe WordPress database toolkit for search and replace, recovery snapshots, cleanup, optimization, exports, and database diagnostics.
- * Version:     1.0.0
- * Author:      Muhammad Abdullah
+ * Version:     1.0.1
+ * Author:      Quberiq Technologies
+ * Author URI:  https://quberiqtechnologies.com
  * License:     GPL-2.0-or-later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: shiftdb
@@ -15,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'SHIFTDB_VERSION', '1.0.0' );
+define( 'SHIFTDB_VERSION', '1.0.1' );
 define( 'SHIFTDB_FILE', __FILE__ );
 define( 'SHIFTDB_DIR', plugin_dir_path( __FILE__ ) );
 define( 'SHIFTDB_URL', plugin_dir_url( __FILE__ ) );

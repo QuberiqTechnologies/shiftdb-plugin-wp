@@ -7,9 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class ShiftDB_Cleanup {
 	public static function counts(): array {
 		global $wpdb;
-		$revisions = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type = 'revision'" );
-		$spam      = (int) $wpdb->get_var( "SELECT COUNT(comment_ID) FROM {$wpdb->comments} WHERE comment_approved = 'spam'" );
-		$trash     = (int) $wpdb->get_var( "SELECT COUNT(comment_ID) FROM {$wpdb->comments} WHERE comment_approved = 'trash'" );
+		$revisions = (int) $wpdb->get_var( "SELECT COUNT(ID) FROM {$wpdb->posts} WHERE post_type = 'revision'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$spam      = (int) $wpdb->get_var( "SELECT COUNT(comment_ID) FROM {$wpdb->comments} WHERE comment_approved = 'spam'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
+		$trash     = (int) $wpdb->get_var( "SELECT COUNT(comment_ID) FROM {$wpdb->comments} WHERE comment_approved = 'trash'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter -- Read-only diagnostic count.
 		$transient = (int) $wpdb->get_var(
 			$wpdb->prepare(
 				"SELECT COUNT(option_id) FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
@@ -17,6 +18,7 @@ final class ShiftDB_Cleanup {
 				$wpdb->esc_like( '_site_transient_' ) . '%'
 			)
 		);
+		// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 
 		return array(
 			'revisions'  => $revisions,
@@ -35,7 +37,7 @@ final class ShiftDB_Cleanup {
 		foreach ( $types as $type ) {
 			switch ( $type ) {
 				case 'revisions':
-					$ids = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'revision'" );
+					$ids = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'revision'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 					$count = 0;
 					foreach ( $ids as $id ) {
 						if ( wp_delete_post_revision( (int) $id ) ) {
@@ -45,7 +47,7 @@ final class ShiftDB_Cleanup {
 					$result[ $type ] = $count;
 					break;
 				case 'spam':
-					$ids = $wpdb->get_col( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_approved = 'spam'" );
+					$ids = $wpdb->get_col( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_approved = 'spam'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 					$count = 0;
 					foreach ( $ids as $id ) {
 						if ( wp_delete_comment( (int) $id, true ) ) {
@@ -55,7 +57,7 @@ final class ShiftDB_Cleanup {
 					$result[ $type ] = $count;
 					break;
 				case 'trash':
-					$ids = $wpdb->get_col( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_approved = 'trash'" );
+					$ids = $wpdb->get_col( "SELECT comment_ID FROM {$wpdb->comments} WHERE comment_approved = 'trash'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 					$count = 0;
 					foreach ( $ids as $id ) {
 						if ( wp_delete_comment( (int) $id, true ) ) {
@@ -79,7 +81,8 @@ final class ShiftDB_Cleanup {
 	private static function delete_expired_transients(): int {
 		global $wpdb;
 		$now   = time();
-		$names = $wpdb->get_col(
+		// Direct read is intentional to locate expired transient keys before using the core deletion API.
+		$names = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$wpdb->prepare(
 				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND CAST(option_value AS UNSIGNED) < %d",
 				$wpdb->esc_like( '_transient_timeout_' ) . '%',
@@ -102,7 +105,8 @@ final class ShiftDB_Cleanup {
 			$wpdb->esc_like( '_transient_' ) . '%',
 			$wpdb->esc_like( '_site_transient_' ) . '%',
 		);
-		$names = $wpdb->get_col(
+		// Direct read is intentional to enumerate transient keys before using the core deletion APIs.
+		$names = $wpdb->get_col( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			$wpdb->prepare(
 				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
 				$patterns[0],
@@ -137,7 +141,10 @@ final class ShiftDB_Cleanup {
 		}
 		$result = array();
 		foreach ( $tables as $table ) {
-			$row = $wpdb->get_row( 'OPTIMIZE TABLE `' . esc_sql( $table ) . '`', ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$row = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,WordPress.DB.DirectDatabaseQuery.SchemaChange
+				$wpdb->prepare( 'OPTIMIZE TABLE %i', $table ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				ARRAY_A
+			);
 			$result[ $table ] = $row['Msg_text'] ?? __( 'Optimization completed.', 'shiftdb' );
 		}
 		return $result;

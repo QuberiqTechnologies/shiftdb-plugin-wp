@@ -44,7 +44,7 @@ final class ShiftDB_Admin {
 				'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( self::NONCE ),
 				'i18n'    => array(
-					'working' => __( 'Working…', 'shiftdb' ),
+					'working' => __( 'Working...', 'shiftdb' ),
 					'confirmReplace' => __( 'This will modify your database. A recovery snapshot will be created. Continue?', 'shiftdb' ),
 					'confirmRestore' => __( 'Restore this recovery snapshot? Current values in affected rows will be overwritten.', 'shiftdb' ),
 					'confirmDelete'  => __( 'Delete this recovery snapshot permanently?', 'shiftdb' ),
@@ -67,11 +67,22 @@ final class ShiftDB_Admin {
 		?>
 		<div class="wrap shiftdb-wrap">
 			<div class="shiftdb-header">
-				<div>
-					<h1><?php esc_html_e( 'ShiftDB', 'shiftdb' ); ?></h1>
-					<p><?php esc_html_e( 'Safe database search, replacement, recovery, cleanup, exports and diagnostics for WordPress.', 'shiftdb' ); ?></p>
+				<div class="shiftdb-brand">
+					<div class="shiftdb-brand-mark" aria-hidden="true">
+						<img src="<?php echo esc_url( SHIFTDB_URL . 'assets/images/shiftdb-logo.svg' ); ?>" alt="">
+					</div>
+					<div class="shiftdb-brand-copy">
+						<div class="shiftdb-title-row">
+							<h1><?php esc_html_e( 'ShiftDB', 'shiftdb' ); ?></h1>
+							<span class="shiftdb-product-label"><?php esc_html_e( 'Database Toolkit', 'shiftdb' ); ?></span>
+						</div>
+						<p><?php esc_html_e( 'Safe database search, replacement, recovery, cleanup, exports and diagnostics for WordPress.', 'shiftdb' ); ?></p>
+					</div>
 				</div>
-				<span class="shiftdb-version"><?php echo esc_html( 'v' . SHIFTDB_VERSION ); ?></span>
+				<div class="shiftdb-header-meta">
+					<span class="shiftdb-version-label"><?php esc_html_e( 'Version', 'shiftdb' ); ?></span>
+					<span class="shiftdb-version"><?php echo esc_html( SHIFTDB_VERSION ); ?></span>
+				</div>
 			</div>
 
 			<div class="shiftdb-stats">
@@ -119,7 +130,7 @@ final class ShiftDB_Admin {
 						<?php wp_nonce_field( 'shiftdb_export', 'shiftdb_export_nonce' ); ?>
 						<div class="shiftdb-table-wrap"><table class="widefat striped"><thead><tr><th><input type="checkbox" class="shiftdb-check-all" data-target="db-table"></th><th><?php esc_html_e( 'Table', 'shiftdb' ); ?></th><th><?php esc_html_e( 'Rows', 'shiftdb' ); ?></th><th><?php esc_html_e( 'Engine', 'shiftdb' ); ?></th><th><?php esc_html_e( 'Size', 'shiftdb' ); ?></th><th><?php esc_html_e( 'Overhead', 'shiftdb' ); ?></th></tr></thead><tbody>
 						<?php foreach ( $tables as $table ) : $name = (string) ( $table['Name'] ?? '' ); $size = (int) ( $table['Data_length'] ?? 0 ) + (int) ( $table['Index_length'] ?? 0 ); ?>
-						<tr><td><input type="checkbox" class="db-table" name="tables[]" value="<?php echo esc_attr( $name ); ?>"></td><td><code><?php echo esc_html( $name ); ?></code></td><td><?php echo esc_html( number_format_i18n( (int) ( $table['Rows'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( (string) ( $table['Engine'] ?? '—' ) ); ?></td><td><?php echo esc_html( size_format( $size, 2 ) ); ?></td><td><?php echo esc_html( size_format( (int) ( $table['Data_free'] ?? 0 ), 2 ) ); ?></td></tr>
+						<tr><td><input type="checkbox" class="db-table" name="tables[]" value="<?php echo esc_attr( $name ); ?>"></td><td><code><?php echo esc_html( $name ); ?></code></td><td><?php echo esc_html( number_format_i18n( (int) ( $table['Rows'] ?? 0 ) ) ); ?></td><td><?php echo esc_html( (string) ( $table['Engine'] ?? '-' ) ); ?></td><td><?php echo esc_html( size_format( $size, 2 ) ); ?></td><td><?php echo esc_html( size_format( (int) ( $table['Data_free'] ?? 0 ), 2 ) ); ?></td></tr>
 						<?php endforeach; ?>
 						</tbody></table></div>
 						<div class="shiftdb-actions"><button class="button" type="submit"><?php esc_html_e( 'Export Selected SQL', 'shiftdb' ); ?></button><button class="button" type="button" id="shiftdb-optimize"><?php esc_html_e( 'Optimize Selected', 'shiftdb' ); ?></button></div>
@@ -199,7 +210,9 @@ final class ShiftDB_Admin {
 	}
 
 	private function cleanup_item( string $type, string $label, int $count ): void {
-		?><label class="shiftdb-clean-item"><input type="checkbox" class="shiftdb-clean-type" value="<?php echo esc_attr( $type ); ?>"><span><strong><?php echo esc_html( $label ); ?></strong><small><?php echo esc_html( sprintf( _n( '%s item found', '%s items found', $count, 'shiftdb' ), number_format_i18n( $count ) ) ); ?></small></span></label><?php
+		?>
+		<label class="shiftdb-clean-item"><input type="checkbox" class="shiftdb-clean-type" value="<?php echo esc_attr( $type ); ?>"><span><strong><?php echo esc_html( $label ); ?></strong><small><?php /* translators: %s: Number of cleanup items found. */ echo esc_html( sprintf( _n( '%s item found', '%s items found', $count, 'shiftdb' ), number_format_i18n( $count ) ) ); ?></small></span></label>
+		<?php
 	}
 
 	private function authorize(): void {
@@ -210,16 +223,17 @@ final class ShiftDB_Admin {
 
 	private function ajax_authorize(): void {
 		$this->authorize();
-		check_ajax_referer( self::NONCE, 'nonce' );
 	}
 
 	private function selected_tables(): array {
-		$tables = isset( $_POST['tables'] ) && is_array( $_POST['tables'] ) ? wp_unslash( $_POST['tables'] ) : array();
+		check_ajax_referer( self::NONCE, 'nonce' );
+		$tables = isset( $_POST['tables'] ) && is_array( $_POST['tables'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['tables'] ) ) : array();
 		return ShiftDB_Database::validate_tables( $tables );
 	}
 
 	public function ajax_dry_run(): void {
 		$this->ajax_authorize();
+		check_ajax_referer( self::NONCE, 'nonce' );
 		$search = isset( $_POST['search'] ) ? sanitize_textarea_field( wp_unslash( $_POST['search'] ) ) : '';
 		$replace = isset( $_POST['replace'] ) ? sanitize_textarea_field( wp_unslash( $_POST['replace'] ) ) : '';
 		$case = ! empty( $_POST['case_sensitive'] );
@@ -233,6 +247,7 @@ final class ShiftDB_Admin {
 
 	public function ajax_replace(): void {
 		$this->ajax_authorize();
+		check_ajax_referer( self::NONCE, 'nonce' );
 		$search  = isset( $_POST['search'] ) ? sanitize_textarea_field( wp_unslash( $_POST['search'] ) ) : '';
 		$replace = isset( $_POST['replace'] ) ? sanitize_textarea_field( wp_unslash( $_POST['replace'] ) ) : '';
 		$case    = ! empty( $_POST['case_sensitive'] );
@@ -248,6 +263,7 @@ final class ShiftDB_Admin {
 
 	public function ajax_restore(): void {
 		$this->ajax_authorize();
+		check_ajax_referer( self::NONCE, 'nonce' );
 		$file   = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 		$result = ShiftDB_Database::restore_snapshot( $file );
 		if ( is_wp_error( $result ) ) {
@@ -260,6 +276,7 @@ final class ShiftDB_Admin {
 
 	public function ajax_delete_snapshot(): void {
 		$this->ajax_authorize();
+		check_ajax_referer( self::NONCE, 'nonce' );
 		$file = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 		if ( ! ShiftDB_Backup::delete_snapshot( $file ) ) {
 			wp_send_json_error( array( 'message' => __( 'Recovery snapshot could not be deleted.', 'shiftdb' ) ), 400 );
@@ -270,7 +287,8 @@ final class ShiftDB_Admin {
 
 	public function ajax_cleanup(): void {
 		$this->ajax_authorize();
-		$types  = isset( $_POST['types'] ) && is_array( $_POST['types'] ) ? wp_unslash( $_POST['types'] ) : array();
+		check_ajax_referer( self::NONCE, 'nonce' );
+		$types  = isset( $_POST['types'] ) && is_array( $_POST['types'] ) ? array_map( 'sanitize_key', wp_unslash( $_POST['types'] ) ) : array();
 		$result = ShiftDB_Cleanup::cleanup( $types );
 		ShiftDB_Logger::add( 'cleanup', 'success', $result );
 		wp_send_json_success( $result );
@@ -278,6 +296,7 @@ final class ShiftDB_Admin {
 
 	public function ajax_optimize(): void {
 		$this->ajax_authorize();
+		check_ajax_referer( self::NONCE, 'nonce' );
 		$result = ShiftDB_Cleanup::optimize_tables( $this->selected_tables() );
 		if ( is_wp_error( $result ) ) {
 			wp_send_json_error( array( 'message' => $result->get_error_message(), 'code' => $result->get_error_code() ), 400 );
@@ -289,7 +308,7 @@ final class ShiftDB_Admin {
 	public function handle_export(): void {
 		$this->authorize();
 		check_admin_referer( 'shiftdb_export', 'shiftdb_export_nonce' );
-		$tables = isset( $_POST['tables'] ) && is_array( $_POST['tables'] ) ? wp_unslash( $_POST['tables'] ) : array();
+		$tables = isset( $_POST['tables'] ) && is_array( $_POST['tables'] ) ? array_map( 'sanitize_text_field', wp_unslash( $_POST['tables'] ) ) : array();
 		$sql    = ShiftDB_Database::export_sql( $tables );
 		if ( is_wp_error( $sql ) ) {
 			wp_die( esc_html( $sql->get_error_message() ) );

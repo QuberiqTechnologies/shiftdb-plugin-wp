@@ -36,7 +36,8 @@ final class ShiftDB_Logger {
 	public static function add( string $action, string $status, array $details = array() ): void {
 		global $wpdb;
 
-		$wpdb->insert(
+		// Direct query is intentional: ShiftDB writes to its own local operation log table.
+		$wpdb->insert( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
 			self::table_name(),
 			array(
 				'user_id'    => get_current_user_id(),
@@ -53,12 +54,11 @@ final class ShiftDB_Logger {
 		global $wpdb;
 
 		$limit = max( 1, min( 200, $limit ) );
-		$sql   = $wpdb->prepare(
-			'SELECT * FROM ' . self::table_name() . ' ORDER BY id DESC LIMIT %d',
-			$limit
+		// Direct query is intentional: ShiftDB maintains its own local operation log table.
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( 'SELECT * FROM %i ORDER BY id DESC LIMIT %d', self::table_name(), $limit ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
 		);
-
-		$rows = $wpdb->get_results( $sql, ARRAY_A );
 		return is_array( $rows ) ? $rows : array();
 	}
 }

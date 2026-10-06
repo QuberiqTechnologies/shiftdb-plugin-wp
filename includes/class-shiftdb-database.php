@@ -10,8 +10,10 @@ final class ShiftDB_Database {
 	public static function get_tables(): array {
 		global $wpdb;
 		$like   = $wpdb->esc_like( $wpdb->prefix ) . '%';
-		$sql    = $wpdb->prepare( 'SHOW TABLE STATUS LIKE %s', $like );
-		$tables = $wpdb->get_results( $sql, ARRAY_A );
+		$tables = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( 'SHOW TABLE STATUS LIKE %s', $like ),
+			ARRAY_A
+		);
 		return is_array( $tables ) ? $tables : array();
 	}
 
@@ -43,7 +45,10 @@ final class ShiftDB_Database {
 		if ( ! in_array( $table, self::get_table_names(), true ) ) {
 			return array();
 		}
-		$columns = $wpdb->get_results( 'SHOW COLUMNS FROM `' . esc_sql( $table ) . '`', ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		$columns = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare( 'SHOW COLUMNS FROM %i', $table ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
 		return is_array( $columns ) ? $columns : array();
 	}
 
@@ -96,17 +101,12 @@ final class ShiftDB_Database {
 			$table_replacements = 0;
 			$table_rows         = 0;
 			$conditions         = array();
-			$args               = array();
 			foreach ( $columns as $column ) {
-				$conditions[] = '`' . esc_sql( $column ) . '` LIKE %s';
-				$args[]       = '%' . $wpdb->esc_like( $search ) . '%';
+				$conditions[] = $wpdb->prepare( '%i LIKE %s', $column, '%' . $wpdb->esc_like( $search ) . '%' );
 			}
 
-			$sql = 'SELECT * FROM `' . esc_sql( $table ) . '` WHERE ' . implode( ' OR ', $conditions );
-			if ( $args ) {
-				$sql = $wpdb->prepare( $sql, $args ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			}
-			$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$sql  = $wpdb->prepare( 'SELECT * FROM %i WHERE ', $table ) . implode( ' OR ', $conditions );
+			$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			if ( ! is_array( $rows ) ) {
 				continue;
 			}
@@ -176,14 +176,11 @@ final class ShiftDB_Database {
 			}
 
 			$conditions = array();
-			$args       = array();
 			foreach ( $columns as $column ) {
-				$conditions[] = '`' . esc_sql( $column ) . '` LIKE %s';
-				$args[]       = '%' . $wpdb->esc_like( $search ) . '%';
+				$conditions[] = $wpdb->prepare( '%i LIKE %s', $column, '%' . $wpdb->esc_like( $search ) . '%' );
 			}
-			$sql  = 'SELECT * FROM `' . esc_sql( $table ) . '` WHERE ' . implode( ' OR ', $conditions );
-			$sql  = $wpdb->prepare( $sql, $args ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-			$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$sql  = $wpdb->prepare( 'SELECT * FROM %i WHERE ', $table ) . implode( ' OR ', $conditions );
+			$rows = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			if ( ! is_array( $rows ) ) {
 				continue;
 			}
@@ -236,7 +233,8 @@ final class ShiftDB_Database {
 
 		$changed_rows = 0;
 		foreach ( $pending as $change ) {
-			$result = $wpdb->update(
+			// Direct update is the core purpose of an explicitly confirmed ShiftDB replacement operation.
+			$result = $wpdb->update( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 				$change['table'],
 				$change['updates'],
 				array( $change['primary_key'] => $change['row_id'] )
@@ -244,7 +242,11 @@ final class ShiftDB_Database {
 			if ( false === $result ) {
 				return new WP_Error(
 					'shiftdb_update_failed',
-					sprintf( __( 'Database update failed for table %s. Use the generated recovery point to restore affected rows.', 'shiftdb' ), $change['table'] )
+					sprintf(
+						/* translators: %s: Database table name. */
+						__( 'Database update failed for table %s. Use the generated recovery point to restore affected rows.', 'shiftdb' ),
+						$change['table']
+					)
 				);
 			}
 			++$changed_rows;
@@ -280,7 +282,7 @@ final class ShiftDB_Database {
 			$key_value = $row[ $pk ];
 			$update    = $row;
 			unset( $update[ $pk ] );
-			$result = $wpdb->update( $table, $update, array( $pk => $key_value ) );
+			$result = $wpdb->update( $table, $update, array( $pk => $key_value ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching,PluginCheck.Security.DirectDB.UnescapedDBParameter
 			if ( false !== $result ) {
 				++$restored;
 			}
@@ -292,11 +294,14 @@ final class ShiftDB_Database {
 	public static function autoload_options( int $limit = 100 ): array {
 		global $wpdb;
 		$limit = max( 1, min( 500, $limit ) );
-		$sql   = $wpdb->prepare(
-			"SELECT option_name, autoload, LENGTH(option_value) AS bytes FROM {$wpdb->options} WHERE autoload IN ('yes','on','auto-on','auto') ORDER BY bytes DESC LIMIT %d",
-			$limit
+		$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+			$wpdb->prepare(
+				"SELECT option_name, autoload, LENGTH(option_value) AS bytes FROM %i WHERE autoload IN ('yes','on','auto-on','auto') ORDER BY bytes DESC LIMIT %d",
+				$wpdb->options,
+				$limit
+			), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
 		);
-		$rows  = $wpdb->get_results( $sql, ARRAY_A );
 		return is_array( $rows ) ? $rows : array();
 	}
 
@@ -310,11 +315,17 @@ final class ShiftDB_Database {
 		$out  = "-- ShiftDB database export\n";
 		$out .= '-- Generated: ' . gmdate( 'Y-m-d H:i:s' ) . " UTC\n\n";
 		foreach ( $tables as $table ) {
-			$create = $wpdb->get_row( 'SHOW CREATE TABLE `' . esc_sql( $table ) . '`', ARRAY_N ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$create = $wpdb->get_row( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare( 'SHOW CREATE TABLE %i', $table ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared,WordPress.DB.DirectDatabaseQuery.SchemaChange -- SHOW CREATE TABLE reads schema metadata; it does not modify the schema.
+				ARRAY_N
+			);
 			if ( isset( $create[1] ) ) {
 				$out .= 'DROP TABLE IF EXISTS `' . $table . "`;\n" . $create[1] . ";\n\n";
 			}
-			$rows = $wpdb->get_results( 'SELECT * FROM `' . esc_sql( $table ) . '`', ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			$rows = $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.DirectDatabaseQuery.NoCaching
+				$wpdb->prepare( 'SELECT * FROM %i', $table ), // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				ARRAY_A
+			);
 			foreach ( (array) $rows as $row ) {
 				$cols   = array();
 				$values = array();
