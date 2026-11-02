@@ -74,6 +74,17 @@
 		});
 	});
 
+
+	qsa('.shiftdb-jump').forEach((button) => {
+		button.addEventListener('click', () => {
+			const target = button.dataset.jump || '';
+			const tab = qs('.shiftdb-tabs button[data-tab="' + target + '"]');
+			if (!tab) return;
+			tab.click();
+			qs('.shiftdb-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		});
+	});
+
 	qsa('.shiftdb-check-all').forEach((checkAll) => {
 		checkAll.addEventListener('change', () => {
 			qsa('.' + checkAll.dataset.target).forEach((box) => {

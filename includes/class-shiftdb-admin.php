@@ -60,16 +60,46 @@ final class ShiftDB_Admin {
 		$snapshots  = ShiftDB_Backup::list_snapshots();
 		$history    = ShiftDB_Logger::recent( 50 );
 		$cleanup    = ShiftDB_Cleanup::counts();
-		$total_size = 0;
+		$total_size     = 0;
+		$total_overhead = 0;
+		$autoload_size  = 0;
 		foreach ( $tables as $table ) {
-			$total_size += (int) ( $table['Data_length'] ?? 0 ) + (int) ( $table['Index_length'] ?? 0 );
+			$total_size     += (int) ( $table['Data_length'] ?? 0 ) + (int) ( $table['Index_length'] ?? 0 );
+			$total_overhead += (int) ( $table['Data_free'] ?? 0 );
 		}
+		foreach ( $autoload as $option ) {
+			$autoload_size += (int) ( $option['bytes'] ?? 0 );
+		}
+		$largest_tables = $tables;
+		usort(
+			$largest_tables,
+			static function ( array $a, array $b ): int {
+				$a_size = (int) ( $a['Data_length'] ?? 0 ) + (int) ( $a['Index_length'] ?? 0 );
+				$b_size = (int) ( $b['Data_length'] ?? 0 ) + (int) ( $b['Index_length'] ?? 0 );
+				return $b_size <=> $a_size;
+			}
+		);
+		$largest_tables = array_slice( $largest_tables, 0, 5 );
+		$health_score   = 100;
+		if ( $total_size > 0 && ( $total_overhead / $total_size ) > 0.10 ) {
+			$health_score -= 15;
+		}
+		if ( $autoload_size > 1048576 ) {
+			$health_score -= 15;
+		}
+		if ( (int) ( $cleanup['revisions'] ?? 0 ) > 100 ) {
+			$health_score -= 10;
+		}
+		if ( (int) ( $cleanup['transients'] ?? 0 ) > 100 ) {
+			$health_score -= 10;
+		}
+		$health_score = max( 0, $health_score );
 		?>
 		<div class="wrap shiftdb-wrap">
 			<div class="shiftdb-header">
 				<div class="shiftdb-brand">
 					<div class="shiftdb-brand-mark" aria-hidden="true">
-						<img src="<?php echo esc_url( SHIFTDB_URL . 'assets/images/shiftdb-logo.svg' ); ?>" alt="">
+						<img src="<?php echo esc_url( SHIFTDB_URL . 'assets/images/shiftdb-logo-256.png' ); ?>" alt="">
 					</div>
 					<div class="shiftdb-brand-copy">
 						<div class="shiftdb-title-row">
@@ -93,14 +123,63 @@ final class ShiftDB_Admin {
 			</div>
 
 			<nav class="shiftdb-tabs" aria-label="<?php esc_attr_e( 'ShiftDB sections', 'shiftdb' ); ?>">
-				<button class="is-active" data-tab="search-replace"><?php esc_html_e( 'Search & Replace', 'shiftdb' ); ?></button>
+				<button class="is-active" data-tab="overview"><?php esc_html_e( 'Overview', 'shiftdb' ); ?></button>
+				<button data-tab="search-replace"><?php esc_html_e( 'Search & Replace', 'shiftdb' ); ?></button>
 				<button data-tab="database"><?php esc_html_e( 'Database', 'shiftdb' ); ?></button>
 				<button data-tab="cleanup"><?php esc_html_e( 'Cleanup', 'shiftdb' ); ?></button>
 				<button data-tab="recovery"><?php esc_html_e( 'Recovery', 'shiftdb' ); ?></button>
 				<button data-tab="history"><?php esc_html_e( 'History', 'shiftdb' ); ?></button>
 			</nav>
 
-			<section class="shiftdb-panel is-active" data-panel="search-replace">
+
+			<section class="shiftdb-panel is-active" data-panel="overview">
+				<div class="shiftdb-overview-grid">
+					<div class="shiftdb-health-card">
+						<div class="shiftdb-health-copy">
+							<span class="shiftdb-eyebrow"><?php esc_html_e( 'Database Health', 'shiftdb' ); ?></span>
+							<h2><?php esc_html_e( 'Your database at a glance', 'shiftdb' ); ?></h2>
+							<p><?php esc_html_e( 'ShiftDB highlights storage, overhead, autoload pressure and common cleanup opportunities without changing data.', 'shiftdb' ); ?></p>
+							<div class="shiftdb-health-status">
+								<span class="shiftdb-status-dot" aria-hidden="true"></span>
+								<?php echo esc_html( $health_score >= 80 ? __( 'Healthy', 'shiftdb' ) : __( 'Needs attention', 'shiftdb' ) ); ?>
+							</div>
+						</div>
+						<div class="shiftdb-score" style="--score:<?php echo esc_attr( (string) $health_score ); ?>">
+							<div><strong><?php echo esc_html( (string) $health_score ); ?></strong><span>/100</span></div>
+						</div>
+					</div>
+					<div class="shiftdb-insight-grid">
+						<div class="shiftdb-insight"><span><?php esc_html_e( 'Table overhead', 'shiftdb' ); ?></span><strong><?php echo esc_html( size_format( $total_overhead, 2 ) ); ?></strong><small><?php esc_html_e( 'Potential optimization space', 'shiftdb' ); ?></small></div>
+						<div class="shiftdb-insight"><span><?php esc_html_e( 'Top 50 autoload', 'shiftdb' ); ?></span><strong><?php echo esc_html( size_format( $autoload_size, 2 ) ); ?></strong><small><?php esc_html_e( 'Loaded on many requests', 'shiftdb' ); ?></small></div>
+						<div class="shiftdb-insight"><span><?php esc_html_e( 'Revisions', 'shiftdb' ); ?></span><strong><?php echo esc_html( number_format_i18n( (int) ( $cleanup['revisions'] ?? 0 ) ) ); ?></strong><small><?php esc_html_e( 'Available for review', 'shiftdb' ); ?></small></div>
+						<div class="shiftdb-insight"><span><?php esc_html_e( 'Expired transients', 'shiftdb' ); ?></span><strong><?php echo esc_html( number_format_i18n( (int) ( $cleanup['transients'] ?? 0 ) ) ); ?></strong><small><?php esc_html_e( 'Safe cleanup candidates', 'shiftdb' ); ?></small></div>
+					</div>
+				</div>
+				<div class="shiftdb-dashboard-grid">
+					<div class="shiftdb-card shiftdb-card-flush">
+						<div class="shiftdb-card-head"><div><span class="shiftdb-eyebrow"><?php esc_html_e( 'Storage', 'shiftdb' ); ?></span><h2><?php esc_html_e( 'Largest tables', 'shiftdb' ); ?></h2><p><?php esc_html_e( 'See which tables are consuming the most database space.', 'shiftdb' ); ?></p></div><button class="button shiftdb-jump" data-jump="database"><?php esc_html_e( 'View database', 'shiftdb' ); ?></button></div>
+						<div class="shiftdb-largest-list">
+						<?php foreach ( $largest_tables as $index => $table ) : $table_size = (int) ( $table['Data_length'] ?? 0 ) + (int) ( $table['Index_length'] ?? 0 ); $percent = $total_size > 0 ? max( 2, min( 100, ( $table_size / $total_size ) * 100 ) ) : 2; ?>
+							<div class="shiftdb-largest-row">
+								<div class="shiftdb-largest-meta"><code><?php echo esc_html( (string) ( $table['Name'] ?? '' ) ); ?></code><strong><?php echo esc_html( size_format( $table_size, 2 ) ); ?></strong></div>
+								<div class="shiftdb-progress"><span style="width:<?php echo esc_attr( (string) $percent ); ?>%"></span></div>
+							</div>
+						<?php endforeach; ?>
+						</div>
+					</div>
+					<div class="shiftdb-card shiftdb-card-flush">
+						<div class="shiftdb-card-head"><div><span class="shiftdb-eyebrow"><?php esc_html_e( 'Safe workflow', 'shiftdb' ); ?></span><h2><?php esc_html_e( 'Quick actions', 'shiftdb' ); ?></h2><p><?php esc_html_e( 'Move directly to the task you need while keeping ShiftDB safeguards in place.', 'shiftdb' ); ?></p></div></div>
+						<div class="shiftdb-quick-actions">
+							<button class="shiftdb-quick shiftdb-jump" data-jump="search-replace"><span class="dashicons dashicons-search"></span><span><strong><?php esc_html_e( 'Search & Replace', 'shiftdb' ); ?></strong><small><?php esc_html_e( 'Dry-run before changing data', 'shiftdb' ); ?></small></span></button>
+							<button class="shiftdb-quick shiftdb-jump" data-jump="cleanup"><span class="dashicons dashicons-trash"></span><span><strong><?php esc_html_e( 'Cleanup', 'shiftdb' ); ?></strong><small><?php esc_html_e( 'Review database clutter', 'shiftdb' ); ?></small></span></button>
+							<button class="shiftdb-quick shiftdb-jump" data-jump="recovery"><span class="dashicons dashicons-backup"></span><span><strong><?php esc_html_e( 'Recovery', 'shiftdb' ); ?></strong><small><?php esc_html_e( 'Manage recovery points', 'shiftdb' ); ?></small></span></button>
+							<button class="shiftdb-quick shiftdb-jump" data-jump="history"><span class="dashicons dashicons-list-view"></span><span><strong><?php esc_html_e( 'History', 'shiftdb' ); ?></strong><small><?php esc_html_e( 'Audit recent ShiftDB actions', 'shiftdb' ); ?></small></span></button>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<section class="shiftdb-panel" data-panel="search-replace">
 				<div class="shiftdb-card">
 					<div class="shiftdb-card-head">
 						<div><h2><?php esc_html_e( 'Safe Search & Replace', 'shiftdb' ); ?></h2><p><?php esc_html_e( 'Preview every operation before it changes data. Serialized values are handled safely and post GUIDs are protected by default.', 'shiftdb' ); ?></p></div>
