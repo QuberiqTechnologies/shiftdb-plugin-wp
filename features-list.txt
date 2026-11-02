@@ -1,7 +1,7 @@
 ShiftDB – Features List
 Author: Quberiq Technologies
 Contact: contact@quberiqtechnologies.com
-Version: 1.0.1
+Version: 1.1.0
 
 ============================================================
 CURRENT FEATURES INCLUDED IN VERSION 1.0.1
